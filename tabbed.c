@@ -59,7 +59,7 @@ typedef union {
 
 typedef struct {
 	unsigned int mod;
-	KeySym keysym;
+	KeyCode keycode;
 	void (*func)(const Arg *);
 	const Arg arg;
 } Key;
@@ -685,11 +685,9 @@ keypress(const XEvent *e)
 {
 	const XKeyEvent *ev = &e->xkey;
 	unsigned int i;
-	KeySym keysym;
 
-	keysym = XkbKeycodeToKeysym(dpy, (KeyCode)ev->keycode, 0, 0);
 	for (i = 0; i < LENGTH(keys); i++) {
-		if (keysym == keys[i].keysym &&
+		if (ev->keycode == keys[i].keycode &&
 		    CLEANMASK(keys[i].mod) == CLEANMASK(ev->state) &&
 		    keys[i].func)
 			keys[i].func(&(keys[i].arg));
@@ -726,7 +724,6 @@ manage(Window w)
 		int i, j, nextpos;
 		unsigned int modifiers[] = { 0, LockMask, numlockmask,
 		                             numlockmask | LockMask };
-		KeyCode code;
 		Client *c;
 		XEvent e;
 
@@ -737,12 +734,10 @@ manage(Window w)
 		XSync(dpy, False);
 
 		for (i = 0; i < LENGTH(keys); i++) {
-			if ((code = XKeysymToKeycode(dpy, keys[i].keysym))) {
-				for (j = 0; j < LENGTH(modifiers); j++) {
-					XGrabKey(dpy, code, keys[i].mod |
-					         modifiers[j], w, True,
-					         GrabModeAsync, GrabModeAsync);
-				}
+			for (j = 0; j < LENGTH(modifiers); ++j) {
+				XGrabKey(dpy, keys[i].keycode,
+				         keys[i].mod | modifiers[j], w,
+				         True, GrabModeAsync, GrabModeAsync);
 			}
 		}
 
